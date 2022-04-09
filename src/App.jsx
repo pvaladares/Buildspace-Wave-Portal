@@ -4,46 +4,99 @@ import './App.css';
 import abi from './utils/WavePortal.json';
 
 const App = () => {
-	const [currentAccount, setCurrentAccount] = useState('');
-	const contractABI = abi.abi;
-  // Variable with the total of waves done so far
-  const [allWaves, setAllWaves] = useState(0);
-  // Variable to handle the UI animation while querying blockchain
-	const [loadingFlag, setLoadingFlag] = useState(0);
-  // The address of the contract that I deployed
-	const contractAddress = '0x08192f64a523AFfa657c558f6F1a552469a3DAeA';
 
+  const contractABI = abi.abi;
+	const [currentAccount, setCurrentAccount] = useState("");
+  const [allWaves, setAllWaves] = useState([]);
+  const [tweetValue, setTweetValue] = React.useState("")
+  /*
+   * The address of the contract was deployed to blockchain (and by the way, verified!)
+   */	
+  const contractAddress = '0xE0c17d30DF2786C31E57dACbD75eA012fff37C3e';
+
+  /*
+   * If wallet is connected, the ethereum object is created/found
+   * A debug message is shown
+   */
 	const checkIfWalletIsConnected = async () => {
 		try {
 			const { ethereum } = window;
-
+      
 			if (!ethereum) {
 				console.log('Make sure you have metamask!');
 				return;
-			} else {
+			} 
+      else {
 				console.log('We have the ethereum object', ethereum);
 			}
-
+      
+      /*
+       * Check if we're authorized to access the user's wallet
+       */
 			const accounts = await ethereum.request({ method: 'eth_accounts' });
 
-      // If metamask accont is found, take the first account (index 0)
+      // If metamask account is found, take the first account (index 0)
 			if (accounts.length !== 0) {
 				const account = accounts[0];
 				console.log('Found an authorized account:', account);
 				setCurrentAccount(account);
-			} else {
+			} 
+      else {
 				console.log('No authorized account found');
 			}
-		} catch (error) {
+		} 
+    catch (error) {
 			console.log(error);
 		}
 	};
+  
+  /*
+   * Create a method that gets all waves from your contract
+   */
+  const getAllWaves = async () => {
+    try {
+      const { ethereum } = window;
+      if (ethereum) {
+        const provider = new ethers.providers.Web3Provider(ethereum);
+        const signer = provider.getSigner();
+        const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
+        /*
+         * Call the getAllWaves method from the Smart Contract deployed
+         */
+        const waves = await wavePortalContract.getAllWaves();
+
+        /*
+         * We only need address, timestamp, and message in our UI so let's pick those out
+         */
+        let wavesCleaned = [];
+        waves.forEach(wave => {
+          wavesCleaned.push({
+            address: wave.waver,
+            timestamp: new Date(wave.timestamp * 1000),
+            message: wave.message
+          });
+        });
+
+        /*
+         * Store our data in React State
+         */
+        setAllWaves(wavesCleaned);
+      } else {
+        console.log("Ethereum object doesn't exist!")
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  
+  /* 
+   * Check if metamask is installed or enabled on browswer
+   */
 	const connectWallet = async () => {
 		try {
 			const { ethereum } = window;
 
-      // Check if metamask is installed or enabled on browswer
 			if (!ethereum) {
 				alert('Get MetaMask!');
 				return;
@@ -63,7 +116,7 @@ const App = () => {
 	const wave = async () => {
     
     // Start animation
-    setLoadingFlag(1);
+  //  setLoadingFlag(1);
 		try {
       const { ethereum } = window;
 
@@ -79,10 +132,8 @@ const App = () => {
 
 				let count = await wavePortalContract.getTotalWaves();
 				console.log('Retrieved total wave count...', count.toNumber());
-        // Update counter UI
-				setAllWaves(count.toNumber());
 
-				const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave(message.value)
 				console.log('Mining...', waveTxn.hash);
 
 				await waveTxn.wait();
@@ -91,49 +142,17 @@ const App = () => {
 				count = await wavePortalContract.getTotalWaves();
 				console.log('Retrieved total wave count...', count.toNumber());
 
-				// Update counter UI
-				setAllWaves(count.toNumber());
 			} else {
 				console.log("Ethereum object doesn't exist!");
 			}
 		} catch (error) {
 			console.log(error);
 		}
-    // Stop animation
-    setLoadingFlag(0);
-	};
-
-	const readCurrentWaves = async () => {
-    // Start animation
-		setLoadingFlag(1);
-		try {
-			const { ethereum } = window;
-
-			if (ethereum) {
-				const provider = new ethers.providers.Web3Provider(ethereum);
-				const signer = provider.getSigner();
-				const wavePortalContract = new ethers.Contract(
-					contractAddress,
-					contractABI,
-					signer
-				);
-
-				let count = await wavePortalContract.getTotalWaves();
-				console.log('Retrieved total wave count...', count.toNumber());
-        // Update counter UI
-				setAllWaves(count.toNumber());
-			} else {
-				console.log("Ethereum object doesn't exist!");
-			}
-		} catch (error) {
-			console.log(error);
-		}
-    // Stop animation
-    setLoadingFlag(0);
 	};
 
 	useEffect(() => {
 		checkIfWalletIsConnected();
+    getAllWaves();
 	}, []);
 
 	return (
@@ -142,39 +161,45 @@ const App = () => {
 				<div className="header">👋 Hi there!</div>
 
 				<div className="bio">
-					I am a Mechanical Engineer 👷🔩 turned a dev, now experimenting Smart
-					Contracts and making my way to the new world of <b>Web3</b>! 💻<p>
-						Just give it a try, <b>connect your Wallet</b> and{' '}
-						<b>just 👋 wave!</b>
+					I am a Pedro, 👷🔩 turned a dev, now experimenting solidity Smart
+					Contracts and making my way to the new world of decentralized <b>Web3</b>! 💻<p>
+						Just give it a try, <b>connect your Wallet</b> and <b>send a message! 👋</b>
 					</p>
 				</div>
 
-				<button className="waveButton" onClick={wave}>
-					👋 Wave at Me
-				</button>
+        {currentAccount && (
+        <div className="myText">
+          Type a message below:<br></br>
+          <input type="text" id="message" name="message" ></input>
+        </div>
+        )}
 
+        {currentAccount && (
+				<button className="waveButton" onClick={wave}>
+					Send message! 👋 
+				</button>
+        )}
+      
 				{!currentAccount && (
 					<button className="waveButton" onClick={connectWallet}>
 						🔗 Connect Wallet
 					</button>
-				)}
+        )}
+        
 
-				<div className="myText" onClick={readCurrentWaves}>
-					Total Waves : {allWaves}
-        </div>
-        <p></p>
-				<div className="invisibleText">
-					{loadingFlag && (
-						<img
-							src="https://i.gifer.com/7YUL.gif"
-							alt="Loading..."
-							width="20%"
-						/>
-					)}
-				</div>
-			</div>
-		</div>
-	);
+				
+        
+        {allWaves.map((wave, index) => {
+          return (
+            <div key={index} style={{ backgroundColor: "OldLace", marginTop: "16px", padding: "8px" }}>
+              <div>Address: {wave.address}</div>
+              <div>Time: {wave.timestamp.toString()}</div>
+              <div>Message: {wave.message}</div>
+            </div>)
+        })}
+      </div>
+    </div>
+  );
 };
 
 export default App;
