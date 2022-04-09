@@ -12,7 +12,7 @@ const App = () => {
   /*
    * The address of the contract was deployed to blockchain (and by the way, verified!)
    */	
-  const contractAddress = '0x71f3741db7358afb42e21BFA69c0142259E7d827';
+  const contractAddress = '0xCaba03654f45a4Df68eFd6Fa9B88D181F27119FD';
 
   /*
    * If wallet is connected, the ethereum object is created/found
@@ -115,8 +115,6 @@ const App = () => {
 
 	const wave = async () => {
     
-    // Start animation
-  //  setLoadingFlag(1);
 		try {
       const { ethereum } = window;
 
@@ -133,7 +131,8 @@ const App = () => {
 				let count = await wavePortalContract.getTotalWaves();
 				console.log('Retrieved total wave count...', count.toNumber());
 
-        const waveTxn = await wavePortalContract.wave(message.value)
+        wavePortalContract.wave(message, { gasLimit: 300000 });
+        const waveTxn = await wavePortalContract.wave(message.value);
 				console.log('Mining...', waveTxn.hash);
 
 				await waveTxn.wait();
