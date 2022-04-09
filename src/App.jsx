@@ -12,7 +12,7 @@ const App = () => {
   /*
    * The address of the contract was deployed to blockchain (and by the way, verified!)
    */	
-  const contractAddress = '0xE0c17d30DF2786C31E57dACbD75eA012fff37C3e';
+  const contractAddress = '0x71f3741db7358afb42e21BFA69c0142259E7d827';
 
   /*
    * If wallet is connected, the ethereum object is created/found
